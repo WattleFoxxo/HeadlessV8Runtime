@@ -1,0 +1,49 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>       
+        <RootNamespace>HeadlessToolKit</RootNamespace>
+		<AssemblyName>HeadlessToolKit</AssemblyName>
+		<GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+		<TargetFramework>net9.0</TargetFramework>
+		<FileAlignment>512</FileAlignment>
+		<Nullable>enable</Nullable>
+		<Deterministic>true</Deterministic>
+		<PreserveCompilationContext>true</PreserveCompilationContext>
+
+        <CopyToMods Condition="'$(CopyToMods)'==''">true</CopyToMods>
+		<DebugType Condition="'$(Configuration)'=='Debug'">embedded</DebugType>
+	</PropertyGroup>
+
+    <PropertyGroup Condition="'$(ResonitePath)'==''">
+		<ResonitePath>$(MSBuildThisFileDirectory)Resonite/</ResonitePath>
+        <ResonitePath Condition="Exists('C:\Program Files (x86)\Steam\steamapps\common\Resonite\')">C:\Program Files (x86)\Steam\steamapps\common\Resonite\</ResonitePath>
+		<ResonitePath Condition="Exists('$(HOME)/Documents/ResoniteHeadless/')">$(HOME)/Documents/ResoniteHeadless/</ResonitePath>
+		<!-- <ResonitePath Condition="Exists('$(HOME)/.steam/steam/steamapps/common/Resonite/')">$(HOME)/.steam/steam/steamapps/common/Resonite/</ResonitePath> -->
+	</PropertyGroup>
+
+    <ItemGroup>
+		<Reference Include="ResoniteModLoader">
+		    <HintPath>$(ResonitePath)Libraries\ResoniteModLoader.dll</HintPath>
+		</Reference>
+		<Reference Include="HarmonyLib">
+		    <HintPath>$(ResonitePath)rml_libs\0Harmony.dll</HintPath>
+		    <HintPath Condition="Exists('$(ResonitePath)0Harmony.dll')">$(ResonitePath)0Harmony.dll</HintPath>
+		</Reference>
+        <Reference Include="FrooxEngine">
+		    <HintPath>$(ResonitePath)Resonite_Data\Managed\FrooxEngine.dll</HintPath>
+		</Reference>
+	</ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Microsoft.JavaScript.LibNode" Version="20.1800.215" />
+      <PackageReference Include="Microsoft.JavaScript.NodeApi" Version="0.9.11" />
+      <PackageReference Include="Microsoft.JavaScript.NodeApi.Generator" Version="0.9.11" />
+    </ItemGroup>
+
+    <Target Name="PostBuild" AfterTargets="PostBuildEvent" Condition="'$(CopyToMods)'=='true'">
+		<Message Text="Attempting to copy $(TargetFileName) to $(ResonitePath)rml_mods" Importance="high" />
+		<Copy SourceFiles="$(TargetDir)$(TargetFileName)" DestinationFolder="$(ResonitePath)rml_mods" ContinueOnError="true" />
+		<Copy SourceFiles="$(NuGetPackageRoot)microsoft.javascript.nodeapi/0.9.11/lib/netstandard2.0/Microsoft.JavaScript.NodeApi.dll" DestinationFolder="$(ResonitePath)rml_libs" />
+		<!-- <Copy SourceFiles="$(NuGetPackageRoot)microsoft.javascript.libnode.win-x64/20.1800.215/runtimes/win-x64/native/libnode.dll" DestinationFolder="$(ResonitePath)" /> -->
+		<Copy SourceFiles="$(NuGetPackageRoot)microsoft.javascript.libnode.linux-x64/20.1800.215/runtimes/linux-x64/native/libnode.so" DestinationFolder="$(ResonitePath)" />
+	</Target>
+</Project>
