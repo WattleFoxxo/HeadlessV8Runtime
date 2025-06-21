@@ -1,0 +1,6 @@
+{
+    "name": "GameTick",
+    "id": "com.example.GameTick",
+    "entry": "main.mjs",
+    "type": "moduleJS"
+}

@@ -1,0 +1,6 @@
+{
+    "name": "WorldName",
+    "id": "com.example.WorldName",
+    "entry": "main.mjs",
+    "type": "moduleJS"
+}

@@ -1,5 +1,4 @@
 using System;
-using System.Diagnostics;
 using System.IO;
 using System.Threading.Tasks;
 using System.Text.Json;
@@ -7,25 +6,21 @@ using System.Text.Json;
 using FrooxEngine;
 using HarmonyLib;
 using ResoniteModLoader;
+using Elements.Core;
 
-using Microsoft.JavaScript.NodeApi;
-using Microsoft.JavaScript.NodeApi.Runtime;
-using Microsoft.JavaScript.NodeApi.Interop;
-using System.Dynamic;
+using Microsoft.ClearScript;
+using Microsoft.ClearScript.JavaScript;
+using Microsoft.ClearScript.V8;
+
+using System.Collections.Generic;
 
 namespace HeadlessToolKit;
 
-[JSExport]
-public class Helpers
-{
-    public string Name { get; set; } = "HeadlessToolKit";
-
-    public void Ping()
-    {
-        Console.WriteLine("pong!");
-    }
-
-    public int Add(int a, int b) => a + b;
+public class ModuleInfo {
+    public required string name { get; set; }
+    public required string id { get; set; }
+    public required string entry { get; set; }
+    public required string type { get; set; }
 }
 
 public class HeadlessToolKit : ResoniteMod
@@ -42,38 +37,10 @@ public class HeadlessToolKit : ResoniteMod
 
     private static string WorkingDirectory = Directory.GetCurrentDirectory();
 
-    private static string MainScript = @"
-        globalThis.require = require('module').createRequire(process.execPath);
-        globalThis.node_api_dotnet = {
-            import: (specifier) => import(specifier)
-        };
-    ";
+    private static List<V8ScriptEngine> Engines = new();
 
-    private static NodeEmbeddingPlatform NodejsPlatform = new NodeEmbeddingPlatform(
-        new NodeEmbeddingPlatformSettings
-        {
-            LibNodePath = Path.Combine(WorkingDirectory, "libnode.so")
-        }
-    );
-
-    // https://github.com/microsoft/node-api-dotnet/issues/348
-    private static NodeEmbeddingThreadRuntime NodejsRuntime = NodejsPlatform.CreateThreadRuntime(
-        WorkingDirectory,
-        new NodeEmbeddingRuntimeSettings
-        {
-            MainScript = MainScript,
-            Modules = new[] {
-                new NodeEmbeddingModuleInfo {
-                    Name = "HeadlessToolKit",
-                    OnInitialize = (runtime, moduleName, exports) => {
-                        exports.SetProperty("Helpers", runtime.Environment.CreateType(typeof(Helpers)));
-
-                        return exports;
-                    }
-                }
-            }
-        }
-    );
+    public static object SharedJavascriptObject = new();
+    public static EventWrapper OnEngineTick = new();
 
     public override void OnEngineInit()
     {
@@ -82,42 +49,108 @@ public class HeadlessToolKit : ResoniteMod
 
         Msg("Hello World!");
 
-        Task.Run(() => LoadModules(["Test", "EpicGame"]));
-    }
-
-    static (string, bool) ParsePackageInfo(string path)
-    {
-        string packageJson = Path.Combine(path, "package.json");
-
-        if (!File.Exists(packageJson))
-            throw new FileNotFoundException($"package.json not found in {path}");
-
-        JsonDocument doc = JsonDocument.Parse(File.ReadAllText(packageJson));
-        JsonElement root = doc.RootElement;
-
-        string entry = root.TryGetProperty("main", out var mainProp) && !string.IsNullOrWhiteSpace(mainProp.GetString()) ? mainProp.GetString()! : "index.js";
-        bool isModule = root.TryGetProperty("type", out var typeProp) && !string.IsNullOrWhiteSpace(typeProp.GetString()) ? typeProp.GetString()! == "module" : false;
-
-        return (entry, isModule);
-    }
-
-    static async Task LoadModules(string[] scripts, string directory = "Scripts")
-    {
-        await NodejsRuntime.RunAsync(() =>
+        FrooxEngine.Engine.Current.OnReady += () =>
         {
-            var helpers = new Helpers();
-            var obj = new JSObject();
+            LoadModules("./Scripts");
+        };
+    }
 
-            foreach (string script in scripts)
-            {
-                string path = Path.Combine(Directory.GetCurrentDirectory(), $"{directory}/{script}");
-                (string entry, bool isModule) = ParsePackageInfo(path);
-                string scriptPath = Path.Combine(path, entry);
+    [HarmonyPatch(typeof(Userspace))]
+    public static class RunUpdates_Patch
+    {
+        [HarmonyPatch("OnCommonUpdate")]
+        [HarmonyPrefix]
+        public static void RunUpdates()
+        {
+            OnEngineTick.Invoke();
+        }
+    }
 
-                JSValue module = NodejsRuntime.Import(scriptPath, null, isModule);
-            }
+    private static void LoadModules(string path)
+    {
+        DirectoryInfo directoryInfo = new DirectoryInfo(path);
+        IEnumerable<DirectoryInfo> directories = directoryInfo.EnumerateDirectories();
 
-            return Task.CompletedTask;
-        });
+        foreach (var directory in directories)
+        {
+            LoadModule(directory.FullName);
+        }
+    }
+
+    private static void LoadModule(string path)
+    {
+        ModuleInfo? moduleInfo = ParseModuleInfo(path);
+
+        if (moduleInfo == null) return;
+
+        DocumentCategory type = moduleInfo.type == "moduleJS" ? ModuleCategory.Standard : ModuleCategory.CommonJS;
+        string entry = Path.Combine(path, moduleInfo.entry);
+
+        var engine = new V8ScriptEngine();
+
+        engine.DocumentSettings.AccessFlags =
+            DocumentAccessFlags.EnableFileLoading |
+            DocumentAccessFlags.AllowCategoryMismatch;
+        
+        engine.AddHostType(typeof(System.Action));
+        engine.AddHostType(typeof(Console));
+        engine.AddHostType(typeof(FrooxEngine.IUpdatable));
+        engine.AddHostType(typeof(Elements.Core.Transform));
+        engine.AddHostType(typeof(Elements.Core.float3));
+        engine.AddHostType(typeof(Elements.Core.floatQ));
+
+        engine.AddHostObject("Host", new HostFunctions());
+        engine.AddHostObject("SharedObject", SharedJavascriptObject);
+        engine.AddHostObject("FrooxEngine", FrooxEngine.Engine.Current);
+        engine.AddHostObject("OnEngineTick", OnEngineTick);
+
+        engine.ExecuteDocument(entry, type);
+    }
+
+    static ModuleInfo? ParseModuleInfo(string path)
+    {
+        string moduleFile = Path.Combine(path, "module.json");
+
+        if (!File.Exists(moduleFile))
+            throw new FileNotFoundException($"module.json is missing in: {path}");
+
+        string json = File.ReadAllText(moduleFile);
+
+
+        if (string.IsNullOrEmpty(json))
+        {
+            Error($"module.json in {path} is missing or invalid.");
+            return null;
+        }
+
+        ModuleInfo? moduleInfo = JsonSerializer.Deserialize<ModuleInfo>(json);
+
+        if (moduleInfo == null)
+        {
+            Error($"module.json in {path} is invalid.");
+            return null;
+        }
+
+        return moduleInfo;
+    }
+}
+
+public class EventWrapper
+{
+    public event Action OnEvent;
+
+    public void Invoke()
+    {
+        OnEvent?.Invoke();
+    }
+
+    public void AddListener(Action callback)
+    {
+        OnEvent += callback;
+    }
+
+    public void RemoveListener(Action callback)
+    {
+        OnEvent -= callback;
     }
 }

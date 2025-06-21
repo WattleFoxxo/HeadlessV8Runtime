@@ -1,0 +1,6 @@
+{
+    "name": "NewSlot",
+    "id": "com.example.NewSlot",
+    "entry": "main.mjs",
+    "type": "moduleJS"
+}

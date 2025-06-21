@@ -1,0 +1,6 @@
+{
+    "name": "HelloWorld",
+    "id": "com.example.HelloWorld",
+    "entry": "main.mjs",
+    "type": "moduleJS"
+}

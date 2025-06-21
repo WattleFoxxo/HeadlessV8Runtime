@@ -31,19 +31,19 @@
         <Reference Include="FrooxEngine">
 		    <HintPath>$(ResonitePath)Resonite_Data\Managed\FrooxEngine.dll</HintPath>
 		</Reference>
+		<Reference Include="FrooxEngine">
+		    <HintPath>$(ResonitePath)Resonite_Data\Managed\Elements.Core.dll</HintPath>
+		</Reference>
 	</ItemGroup>
 
-    <ItemGroup>
-      <PackageReference Include="Microsoft.JavaScript.LibNode" Version="20.1800.215" />
-      <PackageReference Include="Microsoft.JavaScript.NodeApi" Version="0.9.11" />
-      <PackageReference Include="Microsoft.JavaScript.NodeApi.Generator" Version="0.9.11" />
-    </ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="Microsoft.ClearScript.V8" Version="7.5.0" />
+		<PackageReference Include="Microsoft.ClearScript.V8.Native.linux-x64" Version="7.5.0" />
+	</ItemGroup>
 
     <Target Name="PostBuild" AfterTargets="PostBuildEvent" Condition="'$(CopyToMods)'=='true'">
 		<Message Text="Attempting to copy $(TargetFileName) to $(ResonitePath)rml_mods" Importance="high" />
 		<Copy SourceFiles="$(TargetDir)$(TargetFileName)" DestinationFolder="$(ResonitePath)rml_mods" ContinueOnError="true" />
-		<Copy SourceFiles="$(NuGetPackageRoot)microsoft.javascript.nodeapi/0.9.11/lib/netstandard2.0/Microsoft.JavaScript.NodeApi.dll" DestinationFolder="$(ResonitePath)rml_libs" />
-		<!-- <Copy SourceFiles="$(NuGetPackageRoot)microsoft.javascript.libnode.win-x64/20.1800.215/runtimes/win-x64/native/libnode.dll" DestinationFolder="$(ResonitePath)" /> -->
-		<Copy SourceFiles="$(NuGetPackageRoot)microsoft.javascript.libnode.linux-x64/20.1800.215/runtimes/linux-x64/native/libnode.so" DestinationFolder="$(ResonitePath)" />
+		<Copy SourceFiles="$(NuGetPackageRoot)microsoft.clearscript.v8.native.linux-x64/7.5.0/runtimes/linux-x64/native/ClearScriptV8.linux-x64.so" DestinationFolder="$(ResonitePath)/Headless" />
 	</Target>
 </Project>

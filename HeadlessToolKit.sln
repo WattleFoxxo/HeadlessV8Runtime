@@ -4,6 +4,8 @@ VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HeadlessToolKit", "HeadlessToolKit\HeadlessToolKit.csproj", "{69396182-EBA3-4097-BA4E-79C1D9CF766C}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HTK", "HTK\HTK.csproj", "{60F362CF-A591-4419-BF98-2B101AB2522B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -17,5 +19,9 @@ Global
 		{69396182-EBA3-4097-BA4E-79C1D9CF766C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{69396182-EBA3-4097-BA4E-79C1D9CF766C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{69396182-EBA3-4097-BA4E-79C1D9CF766C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{60F362CF-A591-4419-BF98-2B101AB2522B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{60F362CF-A591-4419-BF98-2B101AB2522B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{60F362CF-A591-4419-BF98-2B101AB2522B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{60F362CF-A591-4419-BF98-2B101AB2522B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
