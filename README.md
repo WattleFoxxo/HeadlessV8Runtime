@@ -14,4 +14,4 @@
 - Create a folder called `Scripts` In `./Resonite`
 
 > [!TIP]
-> Take a look at the examples [here]()
+> Take a look at the examples [here](https://github.com/WattleFoxxo/HeadlessV8Runtime/tree/main/ExampleScripts)
